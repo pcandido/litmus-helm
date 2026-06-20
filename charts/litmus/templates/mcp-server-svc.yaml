@@ -1,0 +1,19 @@
+{{- if .Values.mcpServer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litmus-portal.fullname" . }}-mcp-server-service
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: {{ include "litmus-portal.name" . }}-mcp-server
+    {{- include "litmus-portal.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.mcpServer.service.type }}
+  ports:
+    - name: mcp-server
+      port: {{ .Values.mcpServer.service.port }}
+      targetPort: {{ .Values.mcpServer.containerPort }}
+      protocol: TCP
+  selector:
+    app.kubernetes.io/component: {{ include "litmus-portal.name" . }}-mcp-server
+{{- end }}

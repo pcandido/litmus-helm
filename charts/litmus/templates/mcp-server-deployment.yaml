@@ -1,0 +1,61 @@
+{{- if .Values.mcpServer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "litmus-portal.fullname" . }}-mcp-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: {{ include "litmus-portal.name" . }}-mcp-server
+    {{- include "litmus-portal.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.mcpServer.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: {{ include "litmus-portal.name" . }}-mcp-server
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/component: {{ include "litmus-portal.name" . }}-mcp-server
+        {{- include "litmus-portal.labels" . | nindent 8 }}
+    spec:
+      {{- if .Values.image.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml .Values.image.imagePullSecrets | indent 8 }}
+      {{- end }}
+      containers:
+        - name: mcp-server
+          image: {{ .Values.mcpServer.image.registry }}/{{ .Values.mcpServer.image.repository }}:{{ .Values.mcpServer.image.tag }}
+          imagePullPolicy: {{ .Values.mcpServer.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.mcpServer.containerPort }}
+          env:
+            - name: PORT
+              value: {{ .Values.mcpServer.containerPort | quote }}
+            - name: OIDC_ISSUER
+              value: {{ required "mcpServer.oidcIssuer is required when mcpServer.enabled=true" .Values.mcpServer.oidcIssuer | quote }}
+            - name: CLIENT_ID
+              value: {{ .Values.mcpServer.clientID | quote }}
+            - name: CLIENT_SECRET
+              value: {{ required "mcpServer.clientSecret is required when mcpServer.enabled=true" .Values.mcpServer.clientSecret | quote }}
+            - name: EXTERNAL_URL
+              value: {{ required "mcpServer.externalURL is required when mcpServer.enabled=true" .Values.mcpServer.externalURL | quote }}
+            - name: LITMUS_ENDPOINT
+              value: {{ .Values.mcpServer.litmusEndpoint | default (printf "http://%s-server-service:%d" (include "litmus-portal.fullname" .) (.Values.portal.server.graphqlServer.service.graphqlRestServer.port | int)) | quote }}
+            - name: LITMUS_AUTH_ENDPOINT
+              value: {{ .Values.mcpServer.litmusAuthEndpoint | default (printf "http://%s-auth-server-service:%d" (include "litmus-portal.fullname" .) (.Values.portal.server.authServer.service.authRestServer.port | int)) | quote }}
+          resources:
+            {{- toYaml .Values.mcpServer.resources | nindent 12 }}
+      {{- with .Values.portal.server.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.portal.server.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.portal.server.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

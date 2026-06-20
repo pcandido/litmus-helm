@@ -400,8 +400,44 @@ mongodb:
     enabled: false
     prometheusRule:
       enabled: false
-  # Required when using Mac M1 - https://github.com/bitnami/containers/issues/40947#issuecomment-1968364385
+  # Required when using Mac M1 - https://github.com/bitnami/charts/issues/40947#issuecomment-1968364385
   # arbiter:
     # extraEnvVars:
     #   - name: EXPERIMENTAL_DOCKER_DESKTOP_FORCE_QEMU
     #     value: "1"
+
+# MCP Server — Litmus MCP2 with OAuth/Dex authentication
+# Requires Dex to be configured with the litmus-mcp2 static client.
+# See chaoscenter/dex-server/dex-deployment.yaml for the Dex configuration.
+mcpServer:
+  # -- Set to true to deploy the MCP server alongside Litmus
+  enabled: false
+  replicas: 1
+  image:
+    registry: litmuschaos.docker.scarf.sh/litmuschaos
+    repository: litmus-mcp2
+    tag: latest
+    pullPolicy: Always
+  containerPort: 8090
+  # -- Dex issuer URL. Must match the 'issuer' field in your Dex config (e.g. http://<domain>:32000)
+  oidcIssuer: ""
+  # -- Dex static client ID registered for the MCP server
+  clientID: "litmus-mcp2"
+  # -- Dex static client secret (must match the secret in the Dex staticClients config)
+  clientSecret: "litmus-mcp2-secret"
+  # -- External URL at which the MCP server is reachable (used for the OAuth callback redirect URI)
+  externalURL: ""
+  # -- Override Litmus GraphQL endpoint (defaults to the chart-managed server service)
+  litmusEndpoint: ""
+  # -- Override Litmus auth endpoint (defaults to the chart-managed auth-server service)
+  litmusAuthEndpoint: ""
+  service:
+    type: ClusterIP
+    port: 8090
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
